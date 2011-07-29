@@ -33,9 +33,8 @@ setup(name='cromlech.security',
       namespace_packages=['cromlech'],
       include_package_data=True,
       zip_safe=False,
-      install_requires=[
-          'setuptools',
-      ],
+      install_requires=install_requires,
+      extras_require={'test': tests_require},
       entry_points="""
       # -*- Entry points: -*-
       """,

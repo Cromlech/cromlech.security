@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from cromlech.security.interfaces import IUnauthenticatedPrincipal
+from zope.interface import implements
 
 ANONYMOUS = 'user.unauthenticated'
 
