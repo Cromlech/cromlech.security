@@ -13,20 +13,21 @@ install_requires = [
     ]
 
 tests_require = [
+    'pytest',
     ]
 
 setup(name='cromlech.security',
       version=version,
-      description="",
+      description="Security layer for Cromlech to handle user/group policies.",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       classifiers=[
         "Programming Language :: Python",
         ],
-      keywords='',
-      author='',
-      author_email='',
-      url='',
+      keywords='cromlech security',
+      author='The Dolmen team',
+      author_email='dolmen@list.dolmen-project.org',
+      url='http://gitweb.dolmen-project.org',
       license='ZPL',
       packages=find_packages('src', exclude=['ez_setup']),
       package_dir={'': 'src'},
