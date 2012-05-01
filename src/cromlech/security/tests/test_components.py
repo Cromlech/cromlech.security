@@ -4,9 +4,8 @@ import pytest
 from cromlech.security import Participation, Principal, Interaction
 from cromlech.security import IUnauthenticatedPrincipal
 from cromlech.security import unauthenticated_principal
-from zope.security.interfaces import IParticipation, IPrincipal
+from zope.security.interfaces import IParticipation
 from zope.security.management import getInteraction, endInteraction
-from zope.interface import implements
 
 
 def users(participations):

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+0.2 (2012-05-01)
+----------------
+
+- `Interaction` context managers do now stack in a graceful way.
+  The security context is saved and restaured and can be extended
+  or ignored for the time of the controlled execution.
+
+- Added a decorator that can wrap component lookup results into
+  a security proxy. This very generic decoration process can be
+  used on any kind of function or method that returns a wrappable
+  object.
+
+
 0.1 (2011-07-29)
 ----------------
 
