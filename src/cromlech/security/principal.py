@@ -1,9 +1,20 @@
 # -*- coding: utf-8 -*-
 
+from zope.security.interfaces import IPrincipal
 from cromlech.security.interfaces import IUnauthenticatedPrincipal
 from zope.interface import implements
 
+
 ANONYMOUS = 'user.unauthenticated'
+
+
+class Principal(object):
+    implements(IPrincipal)
+
+    def __init__(self, id, title=u'', description=u''):
+        self.id = id
+        self.title = title
+        self.description = description
 
 
 class UnauthenticatedPrincipal(object):
