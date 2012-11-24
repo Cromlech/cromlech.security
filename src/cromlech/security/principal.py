@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from zope.security.interfaces import IPrincipal
-from cromlech.security.interfaces import IUnauthenticatedPrincipal
+from .interfaces import IPrincipal, IUnauthenticatedPrincipal
 from zope.interface import implements
 
 

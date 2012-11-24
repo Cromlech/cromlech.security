@@ -2,7 +2,7 @@
 
 # Currently it includes rough forking of zope.security
 
-from zope.interface import Interface
+from zope.interface import Interface, Attribute
 from zope.schema import TextLine, Text
 
 

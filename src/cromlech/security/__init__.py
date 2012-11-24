@@ -7,3 +7,4 @@ from .principal import Principal, unauthenticated_principal
 from .components import Protagonist, Interaction
 from .interaction import ContextualInteraction, ContextualProtagonist
 from .decorators import component_protector
+from .errors import Unauthorized, Forbidden

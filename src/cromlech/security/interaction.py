@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import threading
+from .interfaces import IPrincipal
 from .components import Interaction, Protagonist
 from .principal import unauthenticated_principal
 
@@ -20,38 +21,34 @@ def getInteraction():
 
 def setInteraction(interaction):
     previous = getInteraction()
-    if interaction is not None:
-        if interaction.previous is not None:
-            assert interaction.previous is previous
-        else:
-            interaction.previous = previous
-    else:
-        thread_local.interaction = interaction
-    return thread_local.interaction
+    if interaction is not None and interaction.previous is not None:
+        interaction.previous = previous
+
+    thread_local_security.interaction = interaction
+    return thread_local_security.interaction
 
 
 def restoreInteraction():
     interaction = getInteraction()
     if interaction is not None and interaction.previous is not None:
-        thread_local.interaction = interaction.previous
+        thread_local_security.interaction = interaction.previous
     else:
         raise AssertionError(
             "No restorable interaction has been set.")
 
 
 def deleteInteraction():
-    thread_local.interaction = None
+    thread_local_security.interaction = None
 
 
-def newInteraction(*protagonists, stack=True):
+def newInteraction(*protagonists):
     """Start a new interaction.
     """
-    interaction = queryInteraction()
-    if not stack and interaction is not None:
-        raise AssertionError(
-            "Another interaction is active.")
-
-    new_interaction = Interaction(*protagonists)
+    interaction = getInteraction()
+    if interaction is not None:
+        new_interaction = Interaction(protagonists, previous=interaction)
+    else:
+        new_interaction = Interaction(protagonists)
     setInteraction(new_interaction)
     return new_interaction
 
@@ -59,7 +56,7 @@ def newInteraction(*protagonists, stack=True):
 def endInteraction():
     """End the current interaction.
     """
-    interaction = queryInteraction()
+    interaction = getInteraction()
     if interaction is not None:
         if interaction.previous is not None:
             interaction = restoreInteraction()
@@ -102,9 +99,9 @@ class ContextualProtagonist(object):
         return self.protagonist
 
     def __exit__(self, type, value, traceback):
-        current = queryInteraction()
+        current = getInteraction()
         assert self.protagonist.interaction is current, (
             'Security context has changed during the `Interaction`')
         current.remove(self.protagonist)
-        if not len(current.protagonists):
+        if not len(current):
             endInteraction()

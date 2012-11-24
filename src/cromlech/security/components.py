@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from zope.interface import implements
-from zope.security.interfaces import IInteraction, IProtagonist
+from .interfaces import IInteraction, IProtagonist
 
 
 class Interaction(set):
     implements(IInteraction)
 
-    def __init__(self, *participations, previous=None):
+    def __init__(self, participations, previous=None):
         self.previous = previous
         for participation in participations:
             self.add(participation)
