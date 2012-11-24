@@ -3,7 +3,6 @@
 from zope.interface import Interface, Attribute, implements
 from zope.interface.common.interfaces import IException, IAttributeError
 from zope.schema import Text, TextLine
-from zope.security.i18n import ZopeMessageFactory as _
 
 
 class IUnauthorized(IException):
