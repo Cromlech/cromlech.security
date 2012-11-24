@@ -3,11 +3,12 @@
 import os
 from setuptools import setup, find_packages
 
-version = '0.2'
+version = '1.0dev'
 
 install_requires = [
     'setuptools',
-    'zope.security',
+    'crom',
+    'grokker',
     'zope.interface',
     ]
 

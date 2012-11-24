@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from zope.security.proxy import ProxyFactory
+from .interfaces import ISecuredComponent
+from .interaction import getInteraction
+from zope.interface.interfaces import ComponentLookupError
 
 
 def component_protector(lookup):
@@ -10,7 +12,12 @@ def component_protector(lookup):
     """
     def protect_component(*args, **kwargs):
         component = lookup(*args, **kwargs)
-        if view is not None:
-            return ProxyFactory(component)
+        if component is not None:
+            try:
+                checker = ISecuredComponent(component)
+                interaction = getInteraction()                 
+                checker.check(interaction)
+            except ComponentLookupError:
+                pass
         return component
     return protect_component
