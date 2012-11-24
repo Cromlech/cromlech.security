@@ -11,8 +11,8 @@ class ISecuredComponent(Interface):
     def __check__(interaction):
         """Returns:
         - None if the access is allowed.
-        - Unauthorized if the interaction contains only unauthenticated users.
-        - Forbidden if the interaction contains authenticated users.
+        - An instance of Unauthorized if the interaction contains only unauthenticated users.
+        - And instance of Forbidden if the interaction contains authenticated users.
         """
 
 
@@ -21,6 +21,10 @@ class ISecurityCheck(Interface):
     """
     def __call__(obj, permission, interaction):
         """Checks the interaction against a permission on an object.
+        Returns:
+        - None if the access is allowed.
+        - `Unauthorized` if the interaction contains only unauthenticated users.
+        - `Forbidden` if the interaction contains authenticated users.
         """
 
 
@@ -42,6 +46,17 @@ class IPermission(Interface):
         title=u"Description",
         description=u"Provides a description for the permission.",
         required=False)
+
+
+class IAutoResolvingPermission(IPermission):
+
+    def __call__(obj, interaction):
+        """Checks the interaction against itself on an object.
+        Returns:
+        - None if the access is allowed.
+        - `Unauthorized` if the interaction contains only unauthenticated users.
+        - `Forbidden` if the interaction contains authenticated users.
+        """
 
 
 class IPrincipal(Interface):
