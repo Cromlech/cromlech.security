@@ -30,7 +30,7 @@ def base_security_checker(permission):
 @directive(security_checker)
 def secured_component(scanner, pyname, component, permission,
                       security_checker=base_security_checker):
-    component.__checker__ = security_checker(permission)
+    component.__check__ = security_checker(permission)
     classImplements(component, ISecuredComponent)
 
 
