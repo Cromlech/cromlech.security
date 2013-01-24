@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import threading
+from .errors import MissingSecurityContext
 from .interfaces import IPrincipal
 from .components import Interaction, Protagonist
 from .principal import unauthenticated_principal
@@ -15,9 +16,18 @@ class ThreadLocalSecurity(threading.local):
 thread_local_security = ThreadLocalSecurity()
 
 
-def getInteraction():
+def queryInteraction():
     return thread_local_security.interaction
-    
+
+
+def getInteraction():
+    """this function disallows empty interactions
+    """
+    interaction = thread_local_security.interaction
+    if interaction is None:
+        raise MissingSecurityContext('No interaction.')
+    return interaction
+
 
 def setInteraction(interaction):
     previous = getInteraction()

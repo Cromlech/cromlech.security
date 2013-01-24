@@ -5,11 +5,15 @@ from zope.interface.common.interfaces import IException, IAttributeError
 from zope.schema import Text, TextLine
 
 
-class IUnauthorized(IException):
+class ISecurityException(IException):
     pass
 
 
-class IForbidden(IException):
+class IUnauthorized(ISecurityException):
+    pass
+
+
+class IForbidden(ISecurityException):
     pass
 
 
@@ -24,4 +28,9 @@ class Forbidden(Exception):
     """
     implements(IForbidden)
 
-    
+
+class MissingSecurityContext(Exception):
+    """A security component is missing. The security infrastructure is
+    unable to compute anything.
+    """
+    implements(ISecurityException)
