@@ -30,7 +30,7 @@ def getInteraction():
 
 
 def setInteraction(interaction):
-    previous = getInteraction()
+    previous = queryInteraction()
     if interaction is not None and interaction.previous is not None:
         interaction.previous = previous
 
@@ -39,7 +39,7 @@ def setInteraction(interaction):
 
 
 def restoreInteraction():
-    interaction = getInteraction()
+    interaction = queryInteraction()
     if interaction is not None and interaction.previous is not None:
         thread_local_security.interaction = interaction.previous
     else:
@@ -54,7 +54,7 @@ def deleteInteraction():
 def newInteraction(*protagonists):
     """Start a new interaction.
     """
-    interaction = getInteraction()
+    interaction = queryInteraction()
     if interaction is not None:
         new_interaction = Interaction(protagonists, previous=interaction)
     else:
@@ -66,7 +66,7 @@ def newInteraction(*protagonists):
 def endInteraction():
     """End the current interaction.
     """
-    interaction = getInteraction()
+    interaction = queryInteraction()
     if interaction is not None:
         if interaction.previous is not None:
             interaction = restoreInteraction()
@@ -78,13 +78,14 @@ def endInteraction():
 
 class ContextualInteraction(object):
 
-    def __init__(self, principal=unauthenticated_principal, replace=True):
-        assert IPrincipal.providedBy(principal)
-        self.protagonist = Protagonist(principal)
+    def __init__(self, *principals):
+        if not principals:
+            principals = (unauthenticated_principal,)
+        self.protagonists = frozenset((Protagonist(p) for p in principals))
         self.current = None
 
     def __enter__(self):
-        self.current = newInteraction(self.protagonist)
+        self.current = newInteraction(*self.protagonists)
         return self.current
 
     def __exit__(self, type, value, traceback):
@@ -101,7 +102,7 @@ class ContextualProtagonist(object):
         self.protagonist = Protagonist(principal)
 
     def __enter__(self):
-        interaction = getInteraction()
+        interaction = queryInteraction()
         if interaction is None:
             newInteraction(self.protagonist)
         else:

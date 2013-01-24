@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from cromlech.security import Participation, Principal, Interaction
-from cromlech.security import IUnauthenticatedPrincipal
+from cromlech.security import Protagonist, Principal, ContextualInteraction
+from cromlech.security import IUnauthenticatedPrincipal, IProtagonist
 from cromlech.security import unauthenticated_principal
-from zope.security.interfaces import IParticipation
-from zope.security.management import getInteraction, endInteraction
-
-
-def users(participations):
-    for participation in participations:            
-        yield participation.principal
+from cromlech.security.interaction import getInteraction, endInteraction
 
 
 def test_unauthenticated():
@@ -18,19 +12,19 @@ def test_unauthenticated():
     assert IUnauthenticatedPrincipal.providedBy(principal)
 
 
-def test_participation():
+def test_protagonist():
     principal = unauthenticated_principal
-    participation = Participation(principal)
-    assert IParticipation.providedBy(participation)
+    protagonist = Protagonist(principal)
+    assert IProtagonist.providedBy(protagonist)
 
 
 def test_controler():
     principal = unauthenticated_principal
-    with Interaction(principal) as inter:
-        policy = getInteraction()
-        assert inter is policy
-        assert len(policy.participations) == 1
-        assert policy.participations[0].principal == principal
+    with ContextualInteraction(principal) as ci:
+        interaction = getInteraction()
+        assert ci is interaction
+        assert len(interaction) == 1
+        assert interaction.principals == set([principal])
 
 
 def test_nested_interaction():
@@ -39,30 +33,30 @@ def test_nested_interaction():
     anke = Principal('Anke')
     paul = Principal('Paul')
 
-    with Interaction(anon):
-        policy = getInteraction()
-        assert list(users(policy.participations)) == [anon]
+    with ContextualInteraction():
+        interaction = getInteraction()
+        assert interaction.principals == set([anon])
 
-        with Interaction(john, replace=False):
-            policy = getInteraction()
-            assert list(users(policy.participations)) == [anon, john]
-            
-            with Interaction(anke, replace=False):
-                policy = getInteraction()
-                assert list(users(policy.participations)) == [anon, john, anke]
+        with ContextualInteraction(john):
+            interaction = getInteraction()
+            assert interaction.principals == set([john])
 
-                with Interaction(paul):
-                    policy = getInteraction()
-                    assert list(users(policy.participations)) == [paul]
+            with ContextualInteraction(john, anke):
+                interaction = getInteraction()
+                assert interaction.principals == set([john, anke])
 
-                policy = getInteraction()
-                assert list(users(policy.participations)) == [anon, john, anke]
+                with ContextualInteraction(paul):
+                    interaction = getInteraction()
+                    assert interaction.principals == set([paul])
 
-            policy = getInteraction()
-            assert list(users(policy.participations)) == [anon, john]
+                interaction = getInteraction()
+                assert interaction.principals == set([john, anke])
 
-        policy = getInteraction()
-        assert list(users(policy.participations)) == [anon]
+            interaction = getInteraction()
+            assert interaction.principals == set([john])
+
+        interaction = getInteraction()
+        assert interaction.principals == set([anon])
 
 
 def test_aborted_interaction():
@@ -71,9 +65,9 @@ def test_aborted_interaction():
     anke = Principal('Anke')
     paul = Principal('Paul')
 
-    with pytest.raises(RuntimeError) as e:
-        with Interaction(anon):
-            with Interaction(john, replace=False):
+    with pytest.raises(AssertionError) as e:
+        with ContextualInteraction():
+            with ContextualInteraction(john):
                 endInteraction()
 
     assert e.value.message == (
