@@ -11,8 +11,10 @@ class ISecuredComponent(Interface):
     def __check__(interaction):
         """Returns:
         - None if the access is allowed.
-        - An instance of Unauthorized if the interaction contains only unauthenticated users.
-        - And instance of Forbidden if the interaction contains authenticated users.
+        - An instance of Unauthorized if the interaction contains
+          only unauthenticated users.
+        - And instance of Forbidden if the interaction contains
+          authenticated users.
         """
 
 

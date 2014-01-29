@@ -12,3 +12,15 @@ from .interaction import setInteraction, getInteraction, queryInteraction
 from .interaction import restoreInteraction, deleteInteraction
 from .decorators import component_protector
 from .errors import Unauthorized, Forbidden, MissingSecurityContext
+
+
+def get_principal():
+    """Utility method that returns a principal from the current Interaction
+    if and only if the interaction contains a single protagonist.
+    """
+    interaction = queryInteraction()
+    if interaction is not None:
+        if len(interaction) == 1:
+            protagonist = next(iter(interaction))
+            return protagonist.principal
+    return None
