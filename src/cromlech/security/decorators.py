@@ -10,7 +10,7 @@ def component_protector(lookup):
     """
     def protect_component(*args, **kwargs):
         component = lookup(*args, **kwargs)
-        if view is not None:
+        if component is not None:
             return ProxyFactory(component)
         return component
     return protect_component
