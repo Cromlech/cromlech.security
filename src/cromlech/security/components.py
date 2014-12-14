@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from zope.interface import implements
+from zope.interface import implementer
 from .interfaces import IInteraction, IPrincipal, IProtagonist
 
 
+@implementer(IInteraction)
 class Interaction(set):
-    implements(IInteraction)
+    
 
     def __init__(self, protagonists, previous=None):
         self.previous = previous
@@ -32,8 +33,8 @@ class Interaction(set):
         protagonist.interaction = None
 
 
+@implementer(IProtagonist)
 class Protagonist(object):
-    implements(IProtagonist)
 
     def __init__(self, principal):
         assert IPrincipal.providedBy(principal)

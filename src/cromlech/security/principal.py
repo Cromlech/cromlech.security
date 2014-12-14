@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from .interfaces import IPrincipal, IUnauthenticatedPrincipal
-from zope.interface import implements
+from zope.interface import implementer
 
 
 ANONYMOUS = 'user.unauthenticated'
 
 
+@implementer(IPrincipal)
 class Principal(object):
-    implements(IPrincipal)
 
     def __init__(self, id, title=u'', description=u''):
         self.id = id
@@ -16,8 +16,8 @@ class Principal(object):
         self.description = description
 
 
+@implementer(IUnauthenticatedPrincipal)
 class UnauthenticatedPrincipal(object):
-    implements(IUnauthenticatedPrincipal)
 
     def __init__(self, id, title, description):
         self.id = id
