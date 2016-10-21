@@ -28,7 +28,7 @@ def base_security_checker(permission):
 @grokker
 @directive(permission)
 @directive(security_checker)
-def secured_component(scanner, pyname, component, permission,
+def secured_component(scanner, pyname, component, permission=None,
                       security_checker=base_security_checker):
     component.__check__ = security_checker(permission)
     classImplements(component, ISecuredComponent)
