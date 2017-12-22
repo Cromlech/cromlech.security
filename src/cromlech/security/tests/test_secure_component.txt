@@ -1,0 +1,181 @@
+Securing a component
+********************
+
+Securing a component is about checking one or several users against
+arbitrary conditions, usually resulting in one of three outcomes :
+the user is allowed, the user is not authenticated or the user doesn't
+have the proper rights.
+
+Let's get into details with a thorough example. We'll start with creating
+the object to protect.
+
+    >>> from zope.interface import Interface, implementer
+
+    >>> class IDocument(Interface):
+    ...     pass
+
+    >>> @implementer(IDocument)
+    ... class Document(object):
+    ...     pass
+
+    >>> doc = Document()
+
+`cromlech.security` relies on an interface to start its checks:
+
+    >>> from cromlech.security import IProtectedComponent
+
+Our object needs to provide this interface or be adapted to it :
+
+    >>> import pytest
+    >>> from zope.interface.interfaces import ComponentLookupError
+
+    >>> with pytest.raises(ComponentLookupError):
+    ...    protector = IProtectedComponent(doc)
+
+
+Currently, our object doesn't provide nor can be adapter to this interface.
+
+
+Providing IProtectedComponent
+-----------------------------
+
+The `IProtectedComponent` only requires the implementation of a method
+that takes no argument. For now, this security method
+will only return Forbidden:
+
+   >>> from cromlech.security import Forbidden
+
+   >>> @implementer(IProtectedComponent)
+   ... class DocumentProtector(object):
+   ...
+   ...     def __init__(self, doc):
+   ...         self.doc = doc
+   ...
+   ...     def __check_security__(self):
+   ...         return Forbidden
+
+
+Now, we made an adapter. Let's register it :
+
+   >>> from crom import implicit
+   >>> implicit.registry.register(
+   ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
+
+
+We can now adapt our document:
+
+   >>> protector = IProtectedComponent(doc)
+   >>> protector
+   <...DocumentProtector object at ...>
+
+
+Hooking the security check into lookups
+---------------------------------------
+
+This adapter doesn't do much on its own. Calling it manually won't help us
+doing security at the app level. That's why we usually do the security checks
+during lookups.
+
+To help with that, `cromlech.security` provides a lookup decorator that
+will do the adaptation for you and raise any error encountered :
+
+    >>> from cromlech.security import component_protector
+
+This decorator can wrap any method that effectively return the object.
+It will pass along any kind of args and simply try to adapt the returned
+object to IProtectedComponent and run `__check_security__` :
+
+    >>> with pytest.raises(Forbidden):
+    ...     protected = component_protector(IProtectedComponent)(doc)
+
+We can see that our Forbidden, returned by the adapter
+__check_security__ method is raised.
+
+
+Real life example
+-----------------
+
+Let's wipe up our previous examples :
+
+   >>> implicit.clear()
+   >>> implicit.initialize()
+
+Now that the inner workings are unraveled, let's implement a real life example
+that actually make sense.
+
+In this example, we'll use the IProtectedComponent as a dispatcher, to
+query and execute small atomic tests, via the ISecurityCheck interface.
+
+   >>> from cromlech.security import getInteraction
+   >>> from cromlech.security import ISecurityCheck
+
+   >>> @implementer(IProtectedComponent)
+   ... class DocumentProtector(object):
+   ...
+   ...     def __init__(self, doc):
+   ...         self.doc = doc
+   ...
+   ...     def __check_security__(self):
+   ...         interaction = getInteraction()
+   ...         checkers = ISecurityCheck.subscription(self.doc)
+   ...         for checker in checkers:
+   ...             error = checker(self.doc, interaction)
+   ...             if error is not None:
+   ...                raise error
+   ...         return None  # all was fine !
+
+   >>> implicit.registry.register(
+   ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
+
+
+Let's try it, without providing any ISecurityCheck components :
+
+   >>> from cromlech.security import MissingSecurityContext
+
+   >>> with pytest.raises(MissingSecurityContext):
+   ...     component_protector(IProtectedComponent)(doc)
+
+Ah well, it fails since we use an interaction. Interaction objects represent
+the security context of the current runtime. Let's provide one.
+
+   >>> from cromlech.security import ContextualInteraction
+   >>> with ContextualInteraction():
+   ...     component_protector(IProtectedComponent)(doc)
+   <....DocumentProtector object at ...>
+
+Here we go ! The object is correctly returned. This is a first step, since
+our security check does currently nothing at all.
+
+We now need to implement the ISecurityCheck components.
+We query them as subscriptions, so let create them and register them
+as subscription:
+
+   >>> from cromlech.security import unauthenticated_principal
+
+   >>> def NoAnonymous(doc, interaction):
+   ...     for principal in interaction.principals:
+   ...         if principal is unauthenticated_principal:
+   ...             return Forbidden
+
+   >>> implicit.registry.subscribe((IDocument,), ISecurityCheck, NoAnonymous)
+
+
+This very simple checker will make an error if our Interaction contains
+an unauthenticated user. This will go wrong, since we do not provide any
+user to our security context :
+
+   >>> with pytest.raises(Forbidden):
+   ...     with ContextualInteraction():
+   ...         component_protector(IProtectedComponent)(doc)
+
+All is well.
+Let's provide a user, now, to be in the clear :
+
+   >>> from cromlech.security import Principal
+   >>> user = Principal('Manfred')
+
+   >>> with ContextualInteraction(user):
+   ...     component_protector(IProtectedComponent)(doc)
+   <...DocumentProtector object at ...>
+
+Et voilà.

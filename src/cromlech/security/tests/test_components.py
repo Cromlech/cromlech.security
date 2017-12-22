@@ -70,5 +70,5 @@ def test_aborted_interaction():
             with ContextualInteraction(john):
                 endInteraction()
 
-    assert e.value.message == (
+    assert str(e.value) == (
         'Security context has changed during the `Interaction`')

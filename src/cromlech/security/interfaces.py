@@ -7,13 +7,8 @@ from zope.schema import TextLine, Text
 
 
 class IProtectedComponent(Interface):
-    """Marker interface.
-    """
 
-
-class IProtector(Interface):
-
-    def __call__(component):
+    def __check_security__(interaction):
         """Returns:
         - None if the access is allowed.
         - An instance of Unauthorized if the interaction contains
@@ -26,8 +21,8 @@ class IProtector(Interface):
 class ISecurityCheck(Interface):
     """A security check.
     """
-    def __call__(obj, interaction, permissions):
-        """Checks the interaction against a permission on an object.
+    def __call__(obj, interaction):
+        """Checks the security on an interaction.
         Returns:
         - None if the access is allowed.
         - `Unauthorized` if the interaction contains only unauthenticated users.

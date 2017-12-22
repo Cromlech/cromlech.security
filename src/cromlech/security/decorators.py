@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .interfaces import IProtector
+from .interfaces import IProtectedComponent
 from .interaction import getInteraction
 from zope.interface.interfaces import ComponentLookupError
 
@@ -14,9 +14,9 @@ def component_protector(lookup):
         component = lookup(*args, **kwargs)
         if component is not None:
             try:
-                checker = IProtector.component(component)
+                checker = IProtectedComponent(component)
                 if checker is not None:
-                    error = checker(component)
+                    error = checker.__check_security__()
                     if error is not None:
                         raise error
             except ComponentLookupError:

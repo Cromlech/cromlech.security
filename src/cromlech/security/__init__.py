@@ -8,7 +8,7 @@ from .interaction import restoreInteraction, deleteInteraction
 from .interaction import setInteraction, getInteraction, queryInteraction
 from .interfaces import IAutoResolvingPermission, IPermission
 from .interfaces import IPrincipal, IUnauthenticatedPrincipal, IProtagonist
-from .interfaces import IProtectedComponent, IProtector, ISecurityCheck
+from .interfaces import IProtectedComponent, ISecurityCheck
 from .meta import permissions, permission_component
 from .principal import Principal, unauthenticated_principal
 from .registry import security_registry

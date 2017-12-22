@@ -17,7 +17,9 @@ description. By default, a principal exists : `unauthenticated_principal`.
 It will the one used in every security context until a new one is set.
 
 The `Interaction` component represents a security context in which
-one or several principals interact with the application.
+one or several principals interact with the application. Interactions
+can be nested, to allow a change of security context, for specific
+operations (masquarading, admin tasks...).
 
 The `Protagonist` is a conceptual wrapper around a principal, marking it as
 belonging to an active interaction.
