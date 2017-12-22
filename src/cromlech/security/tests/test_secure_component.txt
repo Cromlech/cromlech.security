@@ -33,7 +33,7 @@ Our object needs to provide this interface or be adapted to it :
     ...    protector = IProtectedComponent(doc)
 
 
-Currently, our object doesn't provide nor can be adapter to this interface.
+Currently, our object doesn't provide nor can be adapted to this interface.
 
 
 Providing IProtectedComponent
@@ -88,8 +88,8 @@ object to IProtectedComponent and run `__check_security__` :
     >>> with pytest.raises(Forbidden):
     ...     protected = component_protector(IProtectedComponent)(doc)
 
-We can see that our Forbidden, returned by the adapter
-__check_security__ method is raised.
+We can see that our Forbidden, returned by the adapter's __check_security__
+method is raised.
 
 
 Real life example
@@ -121,7 +121,7 @@ query and execute small atomic tests, via the ISecurityCheck interface.
    ...         for checker in checkers:
    ...             error = checker(self.doc, interaction)
    ...             if error is not None:
-   ...                raise error
+   ...                return error
    ...         return None  # all was fine !
 
    >>> implicit.registry.register(
