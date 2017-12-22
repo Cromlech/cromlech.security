@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import threading
-from .errors import SecurityException
+from .errors import Unauthorized, Forbidden
 from .interfaces import IProtectedComponent
 from .interaction import getInteraction
 from zope.interface.interfaces import ComponentLookupError
@@ -39,7 +39,7 @@ class SecureLookup(threading.local):
 
 secure_lookup = SecureLookup()
 secure_lookup.wrapper = component_protector
-secure_lookup.exceptions = (ComponentLookupError, SecurityException)
+secure_lookup.exceptions = (Unauthorized, Forbidden)
 
 
 def getSecureLookup():
@@ -53,17 +53,18 @@ def setSecureLookup(wrapper, exceptions):
 
 class ContextualSecurityWrapper(object):
 
-    def __init__(self, wrapper):
-        self.previous = getSecureLookup()
+    def __init__(self, wrapper, exceptions=None):
+        self.previous_state = getSecureLookup()
         self.wrapper = wrapper
+        self.exceptions = exceptions or tuple()
 
     def __enter__(self):
-        setSecureLookup(self.wrapper)
+        setSecureLookup(self.wrapper, self.exceptions)
         return getSecureLookup()
 
     def __exit__(self, type, value, traceback):
         # We restore everything even if an error occured
-        current = getSecureLookup()
+        current, _ = getSecureLookup()
         assert self.wrapper is current, (
             'Security wrapper has changed during runtime')
-        setSecureLookup(self.previous)
+        setSecureLookup(*self.previous_state)

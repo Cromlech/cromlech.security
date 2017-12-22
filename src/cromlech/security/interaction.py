@@ -103,7 +103,7 @@ class ContextualInteraction(object):
     def __init__(self, *principals):
         if not principals:
             principals = (unauthenticated_principal,)
-        self.protagonists = [Protagonist(p) for p in principals]
+        self.protagonists = frozenset((Protagonist(p) for p in principals))
         self.current = None
 
     def __enter__(self):
