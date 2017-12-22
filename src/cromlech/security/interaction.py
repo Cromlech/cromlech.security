@@ -2,7 +2,7 @@
 
 import threading
 from .errors import MissingSecurityContext
-from .interfaces import IPrincipal
+from .interfaces import IPrincipal, IProtagonist
 from .components import Interaction, Protagonist
 from .principal import unauthenticated_principal
 
@@ -37,6 +37,28 @@ def setInteraction(interaction):
     thread_local_security.interaction = interaction
     return thread_local_security.interaction
 
+
+def removeFromInteraction(principal, interaction=None):
+    if interaction is None:
+        interaction = getInteraction()
+
+    for protagonist in interaction:
+        if protagonist.principal is principal:
+            interaction.remove(protagonist)
+            return True
+    return False
+
+
+def joinInteraction(principal, interaction=None):
+    if interaction is None:
+        interaction = getInteraction()
+
+    if principal not in interaction.principals:
+        protagonist = Protagonist(principal)
+        interaction.add(protagonist)
+        return True
+    return False
+        
 
 def restoreInteraction():
     interaction = queryInteraction()
@@ -81,7 +103,7 @@ class ContextualInteraction(object):
     def __init__(self, *principals):
         if not principals:
             principals = (unauthenticated_principal,)
-        self.protagonists = frozenset((Protagonist(p) for p in principals))
+        self.protagonists = [Protagonist(p) for p in principals]
         self.current = None
 
     def __enter__(self):

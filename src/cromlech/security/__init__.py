@@ -9,6 +9,7 @@ from .errors import Unauthorized, Forbidden, MissingSecurityContext
 from .interaction import ContextualInteraction, ContextualProtagonist
 from .interaction import restoreInteraction, deleteInteraction
 from .interaction import setInteraction, getInteraction, queryInteraction
+from .interaction import joinInteraction, removeFromInteraction
 from .interfaces import IAutoResolvingPermission, IPermission
 from .interfaces import IPrincipal, IUnauthenticatedPrincipal, IProtagonist
 from .interfaces import IProtectedComponent, ISecurityCheck
