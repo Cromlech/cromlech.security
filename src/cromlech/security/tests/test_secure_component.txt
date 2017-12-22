@@ -290,24 +290,33 @@ Let's dissect this IAutoResolvingPermission:
     ...             if principal.id == 'Manfred':
     ...                 return Forbidden
 
+Now, we create a document that will be protected by this permission:
+
     >>> @permissions(NoManfred())
     ... @implementer(IDocument)
     ... class PublicDocumentExceptForManfred(object):
     ...     pass
 
-Let's run this using the user Manfred :
-
     >>> no_manfred_doc = PublicDocumentExceptForManfred()
 
+Let's run this using the user Manfred :
+
+    >>> manfred = Principal('Manfred')
     >>> with pytest.raises(Forbidden):
-    ...     with ContextualInteraction(user):
+    ...     with ContextualInteraction(manfred):
     ...         component_protector(IProtectedComponent)(no_manfred_doc)
 
 Manfred is denied access !
 Let's try with another user, August:
 
-    >>> another_user = Principal('August')
-
-    >>> with ContextualInteraction(another_user):
+    >>> august = Principal('August')
+    >>> with ContextualInteraction(august):
     ...     component_protector(IProtectedComponent)(no_manfred_doc)
     <...DocumentProtector object at ...>
+
+
+If the interaction has both August and Manfred, we're still denied :
+
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction(manfred, august):
+    ...         component_protector(IProtectedComponent)(no_manfred_doc)
