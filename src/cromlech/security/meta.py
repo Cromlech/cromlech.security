@@ -2,13 +2,26 @@
 
 from .registry import security_registry
 from .interfaces import IPermission
-from grokker import ArgsDirective, grokker, directive, validator
+from grokker import ArgsDirective, grokker, directive, GrokkerValidationError
 from crom import name, registry, target
 from zope.interface import Interface, classImplements
+from zope.interface.interfaces import IInterface
+
+import sys
+if sys.version > '3':
+    unicode = str
+
+
+def permission_validator(directive_name, value):
+    if not isinstance(value, (unicode, str, bytes)):
+        if not IPermission.providedBy(value):
+            raise GrokkerValidationError(
+                "The '%s' directive can only be called with a "
+                "str or IPermission argument." % directive_name)
 
 
 permissions = ArgsDirective(
-    'permissions', 'cromlech', validator=validator.str_validator)
+    'permissions', 'cromlech', validator=permission_validator)
 
 
 @grokker

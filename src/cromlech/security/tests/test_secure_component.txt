@@ -44,30 +44,30 @@ that takes an interaction as an argument (see "Real life example" below).
 
 For now, this security method will only return Forbidden:
 
-   >>> from cromlech.security import Forbidden
+    >>> from cromlech.security import Forbidden
 
-   >>> @implementer(IProtectedComponent)
-   ... class DocumentProtector(object):
-   ...
-   ...     def __init__(self, doc):
-   ...         self.doc = doc
-   ...
-   ...     def __check_security__(self, interaction):
-   ...         return Forbidden
+    >>> @implementer(IProtectedComponent)
+    ... class DocumentProtector(object):
+    ...
+    ...     def __init__(self, doc):
+    ...         self.doc = doc
+    ...
+    ...     def __check_security__(self, interaction):
+    ...         return Forbidden
 
 
 Now, we made an adapter. Let's register it :
 
-   >>> from crom import implicit
-   >>> implicit.registry.register(
-   ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
+    >>> from crom import implicit
+    >>> implicit.registry.register(
+    ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
 
 
 We can now adapt our document:
 
-   >>> protector = IProtectedComponent(doc)
-   >>> protector
-   <...DocumentProtector object at ...>
+    >>> protector = IProtectedComponent(doc)
+    >>> protector
+    <...DocumentProtector object at ...>
 
 
 Hooking the security check into lookups
@@ -91,18 +91,18 @@ Interaction objects represent the security context of the current runtime.
 
 Let's try it, without providing any ISecurityCheck components :
 
-   >>> from cromlech.security import MissingSecurityContext
+    >>> from cromlech.security import MissingSecurityContext
 
-   >>> with pytest.raises(MissingSecurityContext):
-   ...     component_protector(IProtectedComponent)(doc)
+    >>> with pytest.raises(MissingSecurityContext):
+    ...     component_protector(IProtectedComponent)(doc)
 
 Now, we try with a valid interaction :
 
-   >>> from cromlech.security import ContextualInteraction
+    >>> from cromlech.security import ContextualInteraction
 
-   >>> with pytest.raises(Forbidden):
-   ...     with ContextualInteraction():
-   ...         component_protector(IProtectedComponent)(doc)
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction():
+    ...         component_protector(IProtectedComponent)(doc)
 
 
 As expected, it raises Forbidden, as it's the only thing done by our
@@ -117,34 +117,34 @@ Real life example
 
 Let's wipe up our previous components and start fresh :
 
-   >>> implicit.clear()
-   >>> implicit.initialize()
+    >>> implicit.clear()
+    >>> implicit.initialize()
 
 In this example, we'll use the IProtectedComponent as a dispatcher, to
 query and execute small atomic tests, via the ISecurityCheck interface.
 
-   >>> from cromlech.security import ISecurityCheck
+    >>> from cromlech.security import ISecurityCheck
 
-   >>> @implementer(IProtectedComponent)
-   ... class DocumentProtector(object):
-   ...
-   ...     def __init__(self, doc):
-   ...         self.doc = doc
-   ...
-   ...     def __check_security__(self, interaction):
-   ...         checkers = ISecurityCheck.subscription(self.doc)
-   ...         for checker in checkers:
-   ...             error = checker(self.doc, interaction)
-   ...             if error is not None:
-   ...                return error
-   ...         return None  # all was fine !
+    >>> @implementer(IProtectedComponent)
+    ... class DocumentProtector(object):
+    ...
+    ...     def __init__(self, doc):
+    ...         self.doc = doc
+    ...
+    ...     def __check_security__(self, interaction):
+    ...         checkers = ISecurityCheck.subscription(self.doc)
+    ...         for checker in checkers:
+    ...             error = checker(self.doc, interaction)
+    ...             if error is not None:
+    ...                return error
+    ...         return None  # all was fine !
 
-   >>> implicit.registry.register(
-   ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
+    >>> implicit.registry.register(
+    ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
 
-   >>> with ContextualInteraction():
-   ...     component_protector(IProtectedComponent)(doc)
-   <....DocumentProtector object at ...>
+    >>> with ContextualInteraction():
+    ...     component_protector(IProtectedComponent)(doc)
+    <....DocumentProtector object at ...>
 
 Here we go ! The object is correctly returned. This is a first step, since
 our security check does currently nothing at all.
@@ -155,31 +155,31 @@ as subscription:
 
    >>> from cromlech.security import unauthenticated_principal
 
-   >>> def NoAnonymous(doc, interaction):
-   ...     for principal in interaction.principals:
-   ...         if principal is unauthenticated_principal:
-   ...             return Forbidden
+    >>> def NoAnonymous(doc, interaction):
+    ...     for principal in interaction.principals:
+    ...         if principal is unauthenticated_principal:
+    ...             return Forbidden
 
-   >>> implicit.registry.subscribe((IDocument,), ISecurityCheck, NoAnonymous)
+    >>> implicit.registry.subscribe((IDocument,), ISecurityCheck, NoAnonymous)
 
 
 This very simple checker will make an error if our Interaction contains
 an unauthenticated user. This will go wrong, since we do not provide any
 user to our security context :
 
-   >>> with pytest.raises(Forbidden):
-   ...     with ContextualInteraction():
-   ...         component_protector(IProtectedComponent)(doc)
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction():
+    ...         component_protector(IProtectedComponent)(doc)
 
 All is well.
 Let's provide a user, now, to be in the clear :
 
-   >>> from cromlech.security import Principal
-   >>> user = Principal('Manfred')
+    >>> from cromlech.security import Principal
+    >>> user = Principal('Manfred')
 
-   >>> with ContextualInteraction(user):
-   ...     component_protector(IProtectedComponent)(doc)
-   <...DocumentProtector object at ...>
+    >>> with ContextualInteraction(user):
+    ...     component_protector(IProtectedComponent)(doc)
+    <...DocumentProtector object at ...>
 
 Et voilà.
 
@@ -191,55 +191,123 @@ Permissions in `cromlech.security` are very loose components.
 They do not do anything nor provide any kind of security by their own.
 They can be used as markers:
 
+    >>> from cromlech.security import permissions
 
-   >>> from cromlech.security import permissions
+    >>> @permissions('View')
+    ... @implementer(IDocument)
+    ... class ViewDocument(object):
+    ...     pass
 
-   >>> @permissions('View')
-   ... @implementer(IDocument)
-   ... class ViewDocument(object):
-   ...     pass
-
-   >>> viewdoc = ViewDocument()
+    >>> viewdoc = ViewDocument()
 
 Now, let's add a checker that will check for that permission:
 
-   >>> def PermissionsCheck(doc, interaction):
-   ...     """Check if all principals have all the permissions !
-   ...     """
-   ...     perms = set(permissions.get(doc) or [])
-   ...     for principal in interaction.principals:
-   ...         has_perms = set(getattr(principal, "permissions", []))
-   ...         if not perms <= has_perms:
-   ...             return Forbidden
+    >>> def PermissionsCheck(doc, interaction):
+    ...     """Check if all principals have all the permissions !
+    ...     """
+    ...     perms = set(permissions.get(doc) or [])
+    ...     for principal in interaction.principals:
+    ...         has_perms = set(getattr(principal, "permissions", []))
+    ...         if not perms <= has_perms:
+    ...             return Forbidden
 
-   >>> implicit.registry.subscribe(
-   ...     (IDocument,), ISecurityCheck, PermissionsCheck)
+    >>> implicit.registry.subscribe(
+    ...     (IDocument,), ISecurityCheck, PermissionsCheck)
 
 
 Let's check !
 
-   >>> with ContextualInteraction(user):
-   ...     component_protector(IProtectedComponent)(doc)
-   <...DocumentProtector object at ...>
+    >>> with ContextualInteraction(user):
+    ...     component_protector(IProtectedComponent)(doc)
+    <...DocumentProtector object at ...>
 
 Nothing changed for our former doc, that has no permissions settings.
 We can now check with the `viewdoc` that has permissions:
 
-   >>> with pytest.raises(Forbidden):
-   ...     with ContextualInteraction(user):
-   ...         component_protector(IProtectedComponent)(viewdoc)
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction(user):
+    ...         component_protector(IProtectedComponent)(viewdoc)
 
 As expected, we are forbidden here.
 Let's give our user a set of permissions !
 
-   >>> user.permissions = set(('View', 'Edit', 'Post'))
+    >>> user.permissions = set(('View', 'Edit', 'Post'))
 
 Now, we retry and should be let in :
 
-   >>> with ContextualInteraction(user):
-   ...     component_protector(IProtectedComponent)(viewdoc)
-   <...DocumentProtector object at ...>
+    >>> with ContextualInteraction(user):
+    ...     component_protector(IProtectedComponent)(viewdoc)
+    <...DocumentProtector object at ...>
 
 You have now all the bricks to build your own security policy.
 
 
+Advanced permission object
+--------------------------
+
+As a twisted but very handy usecase, we have the `IAutoResolvingPermission`.
+It's a normalized way to provide a permission that is also an ISecurityCheck
+object.
+
+Let's wipe up our previous components and start fresh :
+
+    >>> implicit.clear()
+    >>> implicit.initialize()
+
+We register a new DocumentProtector:
+
+    >>> @implementer(IProtectedComponent)
+    ... class DocumentProtector(object):
+    ...
+    ...     def __init__(self, doc):
+    ...         self.doc = doc
+    ...
+    ...     def __check_security__(self, interaction):
+    ...         perms = permissions.get(self.doc) or []
+    ...         for permission in perms:
+    ...             if IAutoResolvingPermission.providedBy(permission):
+    ...                error = permission(self.doc, interaction)
+    ...                if error is not None:
+    ...                    return error
+    ...         return None  # all was fine !
+
+    >>> implicit.registry.register(
+    ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
+
+Let's dissect this IAutoResolvingPermission:
+
+    >>> from cromlech.security import IAutoResolvingPermission
+
+    >>> @implementer(IAutoResolvingPermission)
+    ... class NoManfred(object):
+    ...     id = 'NoManfred'
+    ...     title = 'Manfred is not welcome here'
+    ...     description = 'Manfred should never be allowed through.'
+    ...
+    ...     @staticmethod
+    ...     def __call__(doc, interaction):
+    ...         for principal in interaction.principals:
+    ...             if principal.id == 'Manfred':
+    ...                 return Forbidden
+
+    >>> @permissions(NoManfred())
+    ... @implementer(IDocument)
+    ... class PublicDocumentExceptForManfred(object):
+    ...     pass
+
+Let's run this using the user Manfred :
+
+    >>> no_manfred_doc = PublicDocumentExceptForManfred()
+
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction(user):
+    ...         component_protector(IProtectedComponent)(no_manfred_doc)
+
+Manfred is denied access !
+Let's try with another user, August:
+
+    >>> another_user = Principal('August')
+
+    >>> with ContextualInteraction(another_user):
+    ...     component_protector(IProtectedComponent)(no_manfred_doc)
+    <...DocumentProtector object at ...>
