@@ -135,8 +135,9 @@ Let's try it, without providing any ISecurityCheck components :
    >>> with pytest.raises(MissingSecurityContext):
    ...     component_protector(IProtectedComponent)(doc)
 
-Ah well, it fails since we use an interaction. Interaction objects represent
-the security context of the current runtime. Let's provide one.
+Ah well, it fails since we need an interaction.
+Interaction objects represent the security context of the current runtime.
+Let's provide one :
 
    >>> from cromlech.security import ContextualInteraction
    >>> with ContextualInteraction():
