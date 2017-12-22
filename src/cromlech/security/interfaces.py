@@ -6,14 +6,19 @@ from zope.interface import Interface, Attribute
 from zope.schema import TextLine, Text
 
 
-class ISecuredComponent(Interface):
+class IProtectedComponent(Interface):
+    """Marker interface.
+    """
 
-    def __check__(interaction):
+
+class IProtector(Interface):
+
+    def __call__(component):
         """Returns:
         - None if the access is allowed.
         - An instance of Unauthorized if the interaction contains
           only unauthenticated users.
-        - And instance of Forbidden if the interaction contains
+        - An instance of Forbidden if the interaction contains
           authenticated users.
         """
 
@@ -21,7 +26,7 @@ class ISecuredComponent(Interface):
 class ISecurityCheck(Interface):
     """A security check.
     """
-    def __call__(obj, permission, interaction):
+    def __call__(obj, interaction, permissions):
         """Checks the interaction against a permission on an object.
         Returns:
         - None if the access is allowed.
