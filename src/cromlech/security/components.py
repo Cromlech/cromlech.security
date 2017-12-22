@@ -6,7 +6,6 @@ from .interfaces import IInteraction, IPrincipal, IProtagonist
 
 @implementer(IInteraction)
 class Interaction(set):
-    
 
     def __init__(self, protagonists, previous=None):
         self.previous = previous
