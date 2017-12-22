@@ -16,7 +16,8 @@ def component_protector(lookup):
             try:
                 checker = IProtectedComponent(component)
                 if checker is not None:
-                    error = checker.__check_security__()
+                    interaction = getInteraction()
+                    error = checker.__check_security__(interaction)
                     if error is not None:
                         raise error
             except ComponentLookupError:

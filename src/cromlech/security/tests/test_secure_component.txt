@@ -40,8 +40,9 @@ Providing IProtectedComponent
 -----------------------------
 
 The `IProtectedComponent` only requires the implementation of a method
-that takes no argument. For now, this security method
-will only return Forbidden:
+that takes an interaction as an argument (see "Real life example" below).
+
+For now, this security method will only return Forbidden:
 
    >>> from cromlech.security import Forbidden
 
@@ -51,7 +52,7 @@ will only return Forbidden:
    ...     def __init__(self, doc):
    ...         self.doc = doc
    ...
-   ...     def __check_security__(self):
+   ...     def __check_security__(self, interaction):
    ...         return Forbidden
 
 
@@ -83,30 +84,45 @@ will do the adaptation for you and raise any error encountered :
 
 This decorator can wrap any method that effectively return the object.
 It will pass along any kind of args and simply try to adapt the returned
-object to IProtectedComponent and run `__check_security__` :
+object to IProtectedComponent and run `__check_security__`.
 
-    >>> with pytest.raises(Forbidden):
-    ...     protected = component_protector(IProtectedComponent)(doc)
+To test it, we need an interaction.
+Interaction objects represent the security context of the current runtime.
 
-We can see that our Forbidden, returned by the adapter's __check_security__
-method is raised.
+Let's try it, without providing any ISecurityCheck components :
+
+   >>> from cromlech.security import MissingSecurityContext
+
+   >>> with pytest.raises(MissingSecurityContext):
+   ...     component_protector(IProtectedComponent)(doc)
+
+Now, we try with a valid interaction :
+
+   >>> from cromlech.security import ContextualInteraction
+
+   >>> with pytest.raises(Forbidden):
+   ...     with ContextualInteraction():
+   ...         component_protector(IProtectedComponent)(doc)
+
+
+As expected, it raises Forbidden, as it's the only thing done by our
+adapter.
+
+Now that the inner workings are unraveled, let's implement a real life example
+that actually make sense.
 
 
 Real life example
 -----------------
 
-Let's wipe up our previous examples :
+Let's wipe up our previous components and start fresh :
 
    >>> implicit.clear()
    >>> implicit.initialize()
 
-Now that the inner workings are unraveled, let's implement a real life example
-that actually make sense.
-
 In this example, we'll use the IProtectedComponent as a dispatcher, to
 query and execute small atomic tests, via the ISecurityCheck interface.
 
-   >>> from cromlech.security import getInteraction
    >>> from cromlech.security import ISecurityCheck
 
    >>> @implementer(IProtectedComponent)
@@ -115,8 +131,7 @@ query and execute small atomic tests, via the ISecurityCheck interface.
    ...     def __init__(self, doc):
    ...         self.doc = doc
    ...
-   ...     def __check_security__(self):
-   ...         interaction = getInteraction()
+   ...     def __check_security__(self, interaction):
    ...         checkers = ISecurityCheck.subscription(self.doc)
    ...         for checker in checkers:
    ...             error = checker(self.doc, interaction)
@@ -127,19 +142,6 @@ query and execute small atomic tests, via the ISecurityCheck interface.
    >>> implicit.registry.register(
    ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
 
-
-Let's try it, without providing any ISecurityCheck components :
-
-   >>> from cromlech.security import MissingSecurityContext
-
-   >>> with pytest.raises(MissingSecurityContext):
-   ...     component_protector(IProtectedComponent)(doc)
-
-Ah well, it fails since we need an interaction.
-Interaction objects represent the security context of the current runtime.
-Let's provide one :
-
-   >>> from cromlech.security import ContextualInteraction
    >>> with ContextualInteraction():
    ...     component_protector(IProtectedComponent)(doc)
    <....DocumentProtector object at ...>
@@ -239,3 +241,5 @@ Now, we retry and should be let in :
    <...DocumentProtector object at ...>
 
 You have now all the bricks to build your own security policy.
+
+

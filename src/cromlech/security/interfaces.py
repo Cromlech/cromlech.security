@@ -50,15 +50,8 @@ class IPermission(Interface):
         required=False)
 
 
-class IAutoResolvingPermission(IPermission):
-
-    def __call__(obj, interaction):
-        """Checks the interaction against itself on an object.
-        Returns:
-        - None if the access is allowed.
-        - `Unauthorized` if the interaction contains only unauthenticated users.
-        - `Forbidden` if the interaction contains authenticated users.
-        """
+class IAutoResolvingPermission(IPermission, ISecurityCheck):
+    pass
 
 
 class IPrincipal(Interface):
