@@ -179,3 +179,62 @@ Let's provide a user, now, to be in the clear :
    <...DocumentProtector object at ...>
 
 Et voilà.
+
+
+Working with permissions
+------------------------
+
+Permissions in `cromlech.security` are very loose components.
+They do not do anything nor provide any kind of security by their own.
+They can be used as markers:
+
+
+   >>> from cromlech.security import permissions
+
+   >>> @permissions('View')
+   ... @implementer(IDocument)
+   ... class ViewDocument(object):
+   ...     pass
+
+   >>> viewdoc = ViewDocument()
+
+Now, let's add a checker that will check for that permission:
+
+   >>> def PermissionsCheck(doc, interaction):
+   ...     """Check if all principals have all the permissions !
+   ...     """
+   ...     perms = set(permissions.get(doc) or [])
+   ...     for principal in interaction.principals:
+   ...         has_perms = set(getattr(principal, "permissions", []))
+   ...         if not perms <= has_perms:
+   ...             return Forbidden
+
+   >>> implicit.registry.subscribe(
+   ...     (IDocument,), ISecurityCheck, PermissionsCheck)
+
+
+Let's check !
+
+   >>> with ContextualInteraction(user):
+   ...     component_protector(IProtectedComponent)(doc)
+   <...DocumentProtector object at ...>
+
+Nothing changed for our former doc, that has no permissions settings.
+We can now check with the `viewdoc` that has permissions:
+
+   >>> with pytest.raises(Forbidden):
+   ...     with ContextualInteraction(user):
+   ...         component_protector(IProtectedComponent)(viewdoc)
+
+As expected, we are forbidden here.
+Let's give our user a set of permissions !
+
+   >>> user.permissions = set(('View', 'Edit', 'Post'))
+
+Now, we retry and should be let in :
+
+   >>> with ContextualInteraction(user):
+   ...     component_protector(IProtectedComponent)(viewdoc)
+   <...DocumentProtector object at ...>
+
+You have now all the bricks to build your own security policy.
