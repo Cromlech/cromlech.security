@@ -18,6 +18,18 @@ class IProtectedComponent(Interface):
         """
 
 
+class ISecurityPredicate(Interface):
+    """A security predicate.
+    """
+    def __call__(obj, interaction):
+        """Predicts the security on an interaction.
+        Returns:
+        - None if the access is allowed.
+        - `Unauthorized` if the interaction contains only unauthenticated users.
+        - `Forbidden` if the interaction contains authenticated users.
+        """
+
+
 class ISecurityCheck(Interface):
     """A security check.
     """
