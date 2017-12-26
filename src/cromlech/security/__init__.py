@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from .components import Protagonist, Interaction
-from .decorators import ContextualSecurityWrapper
-from .decorators import getSecureLookup, setSecureLookup
-from .decorators import no_security, component_protector
+from .guards import ContextualSecurityGuards
+from .guards import getSecurityGuards, setSecurityGuards
+from .guards import security_check, security_predication
 from .errors import SecurityException
 from .errors import Unauthorized, Forbidden, MissingSecurityContext
 from .interaction import ContextualInteraction, ContextualProtagonist
