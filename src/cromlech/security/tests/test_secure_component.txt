@@ -1,5 +1,5 @@
 Securing a component
-********************
+====================
 
 Securing a component is about checking one or several users against
 arbitrary conditions, usually resulting in one of three outcomes :
@@ -16,7 +16,7 @@ the object to protect.
 
     >>> @implementer(IDocument)
     ... class Document(object):
-    ...     pass
+    ...     name = 'test'
 
     >>> doc = Document()
 
@@ -42,7 +42,8 @@ Providing IProtectedComponent
 The `IProtectedComponent` only requires the implementation of a method
 that takes an interaction as an argument (see "Real life example" below).
 
-For now, this security method will only return Forbidden:
+For now, this security method will return Forbidden if the doc name is
+'test':
 
     >>> from cromlech.security import Forbidden
 
@@ -53,7 +54,8 @@ For now, this security method will only return Forbidden:
     ...         self.doc = doc
     ...
     ...     def __check_security__(self, interaction):
-    ...         return Forbidden
+    ...         if self.doc.name == 'test':
+    ...             return Forbidden
 
 
 Now, we made an adapter. Let's register it :
@@ -77,24 +79,140 @@ This adapter doesn't do much on its own. Calling it manually won't help us
 doing security at the app level. That's why we usually do the security checks
 during lookups.
 
-To help with that, `cromlech.security` provides a lookup decorator that
-will do the adaptation for you and raise any error encountered :
+To help with that, `cromlech.security` provides 2 levels of checking :
 
-    >>> from cromlech.security import component_protector
+  - The class predicate
+  - The component check
 
-This decorator can wrap any method that effectively return the object.
-It will pass along any kind of args and simply try to adapt the returned
-object to IProtectedComponent and run `__check_security__`.
+Each level can rely on several defined components that are not
+developped in this package but that you can implement in your own
+project. The tests will provide extensive examples.
 
-To test it, we need an interaction.
-Interaction objects represent the security context of the current runtime.
 
-Let's try it, without providing any ISecurityCheck components :
+Security predication
+~~~~~~~~~~~~~~~~~~~~
+
+The security predication is a function that is given the class of the
+component looked up and is expected to return it if the security is
+approved.
+
+In addition, the predication function takes the `swallow_errors`
+argument. When ran, the function will look for this flag to either
+raise the first security error encountered or return None instead.
+
+The predication can rely on "predicates", defined here in the
+interface `cromlech.security.interfaces.ISecurityPredicate`.
+
+Conceptually, a predicate is a way to compute security before the component
+is instanciated. That allows the developper to avoid costy component
+instanciation if the security doesn't need the actual object to be
+computed.
+
+Programatically, the pedicate is a subscription that is not
+"subscribed" to upon lookup but is returned as it is registered. It
+means that it needs to be a function or an object, not a class.
+
+An implementation of security predication is provided with
+`cromlech.security`. It's a function that lookups and exhausts the
+`ISecurityPredicate` registered for the given class.
+
+See `cromlech.security.guards.security_predication`.
+
+Let's test our security predication implementation:
+
+    >>> from cromlech.security import security_predication
+    >>> security_predication
+    <function security_predication ...>
+
+To test the security predication any further, we'll need an
+interaction. Interaction objects represent the security context of the
+current runtime.
+
+Let's try it, without providing any interaction :
 
     >>> from cromlech.security import MissingSecurityContext
-
     >>> with pytest.raises(MissingSecurityContext):
-    ...     component_protector(IProtectedComponent)(doc)
+    ...     security_predication(Document)
+
+Now, we try with a valid interaction :
+
+    >>> from cromlech.security import ContextualInteraction
+    >>> with ContextualInteraction():
+    ...     assert security_predication(Document) is Document
+
+Our class is returned, as expected, since no `ISecurityPredicate` are
+registered. We'll need to provide one, to test :
+
+    >>> from cromlech.security import unauthenticated_principal
+
+    >>> def NoAnonymous(cls, interaction):
+    ...     for principal in interaction.principals:
+    ...         if principal is unauthenticated_principal:
+    ...             return Forbidden
+
+This predicate ensures that no anonymous principal are
+participating in the current interaction. We register is now as a
+`ISecurityPredicate` subscription :
+
+    >>> from cromlech.security import ISecurityPredicate
+    >>> implicit.registry.subscribe(
+    ...     (IDocument,), ISecurityPredicate, NoAnonymous)
+
+Running our previous test should now fail by raising Forbidden:
+
+    >>> with pytest.raises(Forbidden):
+    ...     with ContextualInteraction():
+    ...         security_predication(Document)
+
+
+Security check
+~~~~~~~~~~~~~~
+
+The security check is function that is called with the
+instanciated component. It is expected to return the object if the
+security is approved.
+
+In addition, the check function takes the `swallow_errors`
+argument. When ran, the function will look for this flag to either
+raise the first security error encountered or return None instead.
+
+The security check can rely on two defined components :
+
+  - IProtectedComponent : an adapter that needs to implement a
+    `__check_security__` method returns nothing if the security
+    checks out or raise the first security error encountered.
+    See `cromlech.security.interfaces.IProtectedComponent`.
+
+  - ISecurityCheck : a subscription component that is close in concept
+    with the `ISecurityPredicate` with the distinction that it will be
+    called with an object and not a class.
+    See `cromlech.security.interfaces.ISecurityCheck`.
+
+An implementation of security check is provided with
+`cromlech.security`. It's a function that lookups up an adapter to
+`IProtectedComponent` for the given object and calls its
+`__check_security__` if found.
+
+See `cromlech.security.guards.security_check`.
+
+Note that no use is made of the `ISecurityCheck`. However, we'll
+provided real life example for that too.
+
+Let's test our security check implementation:
+
+    >>> from cromlech.security import security_check
+    >>> security_check
+    <function security_check ...>
+
+To test the security check any further, we'll need an
+interaction. Interaction objects represent the security context of the
+current runtime.
+
+Let's try it, without providing any interaction :
+
+    >>> from cromlech.security import MissingSecurityContext
+    >>> with pytest.raises(MissingSecurityContext):
+    ...     security_check(doc)
 
 Now, we try with a valid interaction :
 
@@ -102,11 +220,73 @@ Now, we try with a valid interaction :
 
     >>> with pytest.raises(Forbidden):
     ...     with ContextualInteraction():
-    ...         component_protector(IProtectedComponent)(doc)
-
+    ...         security_check(doc)
 
 As expected, it raises Forbidden, as it's the only thing done by our
-adapter.
+adapter. By changing the document name, we should be able to validate our
+security check:
+
+    >>> doc.name = 'not test'
+    >>> with ContextualInteraction():
+    ...     assert security_check(doc) is doc
+
+
+Let's wipe up our previous components and try with an empty registry :
+
+    >>> implicit.clear()
+    >>> implicit.initialize()
+
+    >>> doc.name = 'test'  # this would have failed before
+    >>> with ContextualInteraction():
+    ...     assert security_check(doc) is doc
+
+
+Security guards
+~~~~~~~~~~~~~~~
+
+The `security predication` and the `security check` are two facets of
+a security policy `cromlech.security` provides. They are regrouped
+under the name `guards` and can be set globally for a thread using the
+provided utilities :
+
+
+    >>> from cromlech.security import getSecurityGuards
+    >>> security_predication, security_check = getSecurityGuards()
+    >>> security_predication, security_check
+    (None, None)
+
+By default, no security policy is provided at all. We do not want to
+enforce the use of the system at all.
+
+    >>> from cromlech.security import setSecurityGuards
+    >>> from cromlech.security import security_predication, security_check
+    >>> setSecurityGuards(security_predication, security_check)
+    >>> getSecurityGuards()
+    (<function security_predication at ...>, <function security_check at ...>)
+
+This way to set a policy can be contextualized, thanks to the
+`ContextualSecurityGuards` context manager that will set a policy
+while keeping the previous one in memory :
+
+     >>> from cromlech.security import ContextualSecurityGuards
+     >>> with ContextualSecurityGuards(None, None):
+     ...     assert getSecurityGuards() == (None, None)
+     ...     with ContextualSecurityGuards(
+     ...              security_predication, security_check):
+     ...         assert getSecurityGuards() == (
+     ...             security_predication, security_check)
+     ...     assert getSecurityGuards() == (None, None)
+  
+But be careful not to mix a direct set with the context manager, it
+would create an inconsistency while restoring the previous state:
+
+     >>> with pytest.raises(AssertionError) as exc:
+     ...     with ContextualSecurityGuards(None, None):
+     ...         setSecurityGuards(security_predication, security_check)
+
+     >>> str(exc.value)
+     'Security guards changed during runtime.'
+
 
 Now that the inner workings are unraveled, let's implement a real life example
 that actually make sense.
@@ -114,11 +294,6 @@ that actually make sense.
 
 Real life example
 -----------------
-
-Let's wipe up our previous components and start fresh :
-
-    >>> implicit.clear()
-    >>> implicit.initialize()
 
 In this example, we'll use the IProtectedComponent as a dispatcher, to
 query and execute small atomic tests, via the ISecurityCheck interface.
@@ -143,8 +318,8 @@ query and execute small atomic tests, via the ISecurityCheck interface.
     ...    (IDocument,), IProtectedComponent, '', DocumentProtector)
 
     >>> with ContextualInteraction():
-    ...     component_protector(IProtectedComponent)(doc)
-    <....DocumentProtector object at ...>
+    ...     security_check(doc)
+    <....Document object at ...>
 
 Here we go ! The object is correctly returned. This is a first step, since
 our security check does currently nothing at all.
@@ -153,33 +328,25 @@ We now need to implement the ISecurityCheck components.
 We query them as subscriptions, so let create them and register them
 as subscription:
 
-   >>> from cromlech.security import unauthenticated_principal
+    >>> def NoTest(doc, interaction):
+    ...     if doc.name == 'test':
+    ...         return Forbidden
 
-    >>> def NoAnonymous(doc, interaction):
-    ...     for principal in interaction.principals:
-    ...         if principal is unauthenticated_principal:
-    ...             return Forbidden
-
-    >>> implicit.registry.subscribe((IDocument,), ISecurityCheck, NoAnonymous)
+    >>> implicit.registry.subscribe((IDocument,), ISecurityCheck, NoTest)
 
 
-This very simple checker will make an error if our Interaction contains
-an unauthenticated user. This will go wrong, since we do not provide any
-user to our security context :
+This very simple checker will make an error if our document name is 'test':
 
     >>> with pytest.raises(Forbidden):
     ...     with ContextualInteraction():
-    ...         component_protector(IProtectedComponent)(doc)
+    ...         security_check(doc)
 
-All is well.
-Let's provide a user, now, to be in the clear :
+All is well. Let's changed the document name to be in the clear :
 
-    >>> from cromlech.security import Principal
-    >>> user = Principal('Manfred')
-
-    >>> with ContextualInteraction(user):
-    ...     component_protector(IProtectedComponent)(doc)
-    <...DocumentProtector object at ...>
+    >>> doc.name = 'no test'
+    >>> with ContextualInteraction():
+    ...     security_check(doc)
+    <...Document object at ...>
 
 Et voilà.
 
@@ -196,9 +363,10 @@ They can be used as markers:
     >>> @permissions('View')
     ... @implementer(IDocument)
     ... class ViewDocument(object):
-    ...     pass
+    ...     name = 'view document'
 
     >>> viewdoc = ViewDocument()
+
 
 Now, let's add a checker that will check for that permission:
 
@@ -217,16 +385,19 @@ Now, let's add a checker that will check for that permission:
 
 Let's check !
 
+    >>> from cromlech.security import Principal
+    >>> user = Principal('Manfred')
+
     >>> with ContextualInteraction(user):
-    ...     component_protector(IProtectedComponent)(doc)
-    <...DocumentProtector object at ...>
+    ...     security_check(doc)
+    <...Document object at ...>
 
 Nothing changed for our former doc, that has no permissions settings.
 We can now check with the `viewdoc` that has permissions:
 
     >>> with pytest.raises(Forbidden):
     ...     with ContextualInteraction(user):
-    ...         component_protector(IProtectedComponent)(viewdoc)
+    ...         security_check(viewdoc)
 
 As expected, we are forbidden here.
 Let's give our user a set of permissions !
@@ -236,8 +407,8 @@ Let's give our user a set of permissions !
 Now, we retry and should be let in :
 
     >>> with ContextualInteraction(user):
-    ...     component_protector(IProtectedComponent)(viewdoc)
-    <...DocumentProtector object at ...>
+    ...     security_check(viewdoc)
+    <...Document object at ...>
 
 You have now all the bricks to build your own security policy.
 
@@ -304,19 +475,19 @@ Let's run this using the user Manfred :
     >>> manfred = Principal('Manfred')
     >>> with pytest.raises(Forbidden):
     ...     with ContextualInteraction(manfred):
-    ...         component_protector(IProtectedComponent)(no_manfred_doc)
+    ...         security_check(no_manfred_doc)
 
 Manfred is denied access !
 Let's try with another user, August:
 
     >>> august = Principal('August')
     >>> with ContextualInteraction(august):
-    ...     component_protector(IProtectedComponent)(no_manfred_doc)
-    <...DocumentProtector object at ...>
+    ...     security_check(no_manfred_doc)
+    <...PublicDocumentExceptForManfred object at ...>
 
 
 If the interaction has both August and Manfred, we're still denied :
 
     >>> with pytest.raises(Forbidden):
     ...     with ContextualInteraction(manfred, august):
-    ...         component_protector(IProtectedComponent)(no_manfred_doc)
+    ...         security_check(no_manfred_doc)

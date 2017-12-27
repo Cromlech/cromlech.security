@@ -12,7 +12,7 @@ from .interaction import setInteraction, getInteraction, queryInteraction
 from .interaction import joinInteraction, removeFromInteraction
 from .interfaces import IAutoResolvingPermission, IPermission
 from .interfaces import IPrincipal, IUnauthenticatedPrincipal, IProtagonist
-from .interfaces import IProtectedComponent, ISecurityCheck
+from .interfaces import IProtectedComponent, ISecurityCheck, ISecurityPredicate
 from .meta import permissions, permission_component
 from .principal import Principal, unauthenticated_principal
 from .registry import security_registry
