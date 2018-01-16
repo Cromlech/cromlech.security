@@ -30,3 +30,12 @@ dist/
 *.svn
 *.rej
 *.egg-info
+
+# venv
+.cache/
+bin/
+develop-eggs/
+include/
+lib/
+pip-selfcheck.json
+share/
