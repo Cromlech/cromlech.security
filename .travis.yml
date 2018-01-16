@@ -1,14 +1,12 @@
 dist: trusty
 language: python
 sudo: false
+cache: pip
 python:
   - 2.7
   - 3.4
   - 3.5
   - 3.6
-
-cache:
-  pip: true
 
 install:
   - pip install -U pip setuptools
@@ -17,4 +15,4 @@ install:
   - pip install -U -e .[test]
 
 script:
-  - bin/pytest src
+  - pytest src
